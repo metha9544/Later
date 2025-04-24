@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>รายการสินค้าที่ผ่อน</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f9f9f9;
+      padding: 10px;
+      color: #333;
+      font-size: 12px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 12px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      margin: 6px 0;
+    }
+
+    .progress {
+      height: 100%;
+      background-color: #4caf50;
+      border-radius: 10px 0 0 10px;
+    }
+
+    button {
+      padding: 4px 6px;
+      border: none;
+      background-color: #4caf50;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+
+    .delete-btn {
+      background-color: #d32f2f;
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+    }
+
+    input[type="number"], input[type="text"] {
+      padding: 4px;
+      width: 28%;
+      margin: 4px 1%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .form-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <h1>รายการสินค้าที่ผ่อน</h1>
+
+  <div class="card">
+    <h3 style="font-size: 14px;">เพิ่มรายการผ่อนสินค้า</h3>
+    <div class="form-container">
+      <input id="productName" type="text" placeholder="ชื่อสินค้า">
+      <input id="installmentPrice" type="number" placeholder="ราคาต่องวด">
+      <input id="totalInstallments" type="number" placeholder="จำนวนงวดทั้งหมด">
+    </div>
+    <button onclick="addItem()">เพิ่มรายการ</button>
+  </div>
+
+  <div id="list"></div>
+
+  <script>
+    const list = document.getElementById('list');
+    let items = [];
+
+    function saveToStorage() {
+      localStorage.setItem('installmentItems', JSON.stringify(items));
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem('installmentItems');
+      if (saved) {
+        items = JSON.parse(saved);
+        list.innerHTML = '';
+        items.forEach(renderItem);
+      }
+    }
+
+    function renderItem(item, index) {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const title = document.createElement('h3');
+      title.innerText = `${item.name} (${item.price}/งวด)`;
+      title.style.fontSize = '13px';
+
+      const status = document.createElement('p');
+      status.innerText = `จ่ายแล้ว ${item.paid} / ${item.total} งวด`;
+      status.style.margin = '4px 0';
+
+      const paidAmount = document.createElement('p');
+      paidAmount.style.color = '#ff9800';
+      paidAmount.style.margin = '2px 0';
+      paidAmount.innerText = `จ่ายไปแล้ว: ${(item.paid * item.price).toLocaleString()}`;
+
+      const remainingAmount = document.createElement('p');
+      remainingAmount.style.color = '#d32f2f';
+      remainingAmount.style.margin = '2px 0';
+      const remaining = (item.total - item.paid) * item.price;
+      remainingAmount.innerText = `คงเหลือ: ${remaining.toLocaleString()}`;
+
+      const progressBar = document.createElement('div');
+      progressBar.className = 'progress-bar';
+
+      const progress = document.createElement('div');
+      progress.className = 'progress';
+      progress.style.width = (item.paid / item.total * 100) + '%';
+      progressBar.appendChild(progress);
+
+      const payBtn = document.createElement('button');
+      payBtn.innerText = "จ่ายงวดนี้แล้ว";
+      payBtn.onclick = () => {
+        if (item.paid < item.total) {
+          item.paid++;
+          updateItem(index, item);
+        } else {
+          alert("ครบทุกงวดแล้ว!");
+        }
+      };
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.innerText = "ลบ";
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.onclick = () => {
+        items.splice(index, 1);
+        saveToStorage();
+        loadFromStorage();
+      };
+
+      card.appendChild(title);
+      card.appendChild(status);
+      card.appendChild(paidAmount);
+      card.appendChild(remainingAmount);
+      card.appendChild(progressBar);
+      card.appendChild(payBtn);
+      card.appendChild(deleteBtn);
+
+      list.appendChild(card);
+    }
+
+    function updateItem(index, updatedItem) {
+      items[index] = updatedItem;
+      saveToStorage();
+      loadFromStorage();
+    }
+
+    function addItem() {
+      const name = document.getElementById('productName').value;
+      const price = parseFloat(document.getElementById('installmentPrice').value);
+      const total = parseInt(document.getElementById('totalInstallments').value);
+
+      if (!name || isNaN(price) || isNaN(total) || total <= 0 || price <= 0) {
+        alert("กรุณากรอกข้อมูลให้ครบและถูกต้อง");
+        return;
+      }
+
+      const newItem = {
+        name: name,
+        price: price,
+        total: total,
+        paid: 0
+      };
+
+      items.push(newItem);
+      saveToStorage();
+      loadFromStorage();
+
+      document.getElementById('productName').value = '';
+      document.getElementById('installmentPrice').value = '';
+      document.getElementById('totalInstallments').value = '';
+    }
+
+    loadFromStorage();
+  </script>
+</body>
+</html>
